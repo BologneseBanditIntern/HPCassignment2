@@ -1,5 +1,6 @@
 # HPC Assignment2
 
+-------------------------------------------------
 
 The goal of this project is to design an implement parallel algorithms to solve
 the all-pairs-shortest path problem for a number of large graphs using either
@@ -8,7 +9,7 @@ and comment on how speedup is affected by changing the size of the problem and
 the number of nodes you use. A reasonable range for the size of your problems
 is 1024 to 4096 vertices. A reasonable range for the number of processors is one
 to 16.
--------------------------------------------------
+
 # Your submission will include:
 
 # 1.1 Code
