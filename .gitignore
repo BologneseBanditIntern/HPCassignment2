@@ -5,3 +5,5 @@
 # Builds
 *.c
 *.exe
+paths
+paths.o
