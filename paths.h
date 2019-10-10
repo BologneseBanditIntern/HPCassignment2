@@ -8,4 +8,7 @@
 #include <string.h>
 #include "mpi.h"
 
+// Function Declarations
+int* readFile(FILE *fp, int *nelements, int *dim);
 char* getFileName(int argCount, char *argInput[]);
+void fileCheck(FILE *fp);

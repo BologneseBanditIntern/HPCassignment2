@@ -8,6 +8,7 @@ mpi = mpicc
 
 $(PROJECT) : $(OBJ)
 	$(mpi) -o $(PROJECT) $(OBJ)
+	@echo "Use 'mpirun ./paths <arg>' to run."
 
 paths.o : paths.c
 	$(mpi) -c paths.c
