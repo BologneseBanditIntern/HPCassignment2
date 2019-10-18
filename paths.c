@@ -9,14 +9,18 @@
 #define runCommand "./paths"
 #define SIZE 14
 
+#define MAX_ROWS 1000
+#define MAX_COLS 1000
+
 
 int main(int argc, char * argv[]) {
 
     FILE *fp;
-    int *matrix;
+    int **matrix;
+    int *dist;
     int dim;
     int nelements = 0;
-    
+
     //Conditional checking for invalid command line argument. Could potentially check for greater then 3 or 4 based on the -f flag, however this may be overkill.
     if (argc < 2 )
     {
@@ -31,39 +35,50 @@ int main(int argc, char * argv[]) {
     fileCheck(fp);
 
     // Reads the file data and sets the matrix array
-    matrix = readFile(fp, &nelements, &dim);
-    fclose(fp);
+    matrix = readFile(fp, &dim);
+    fclose(fp); 
 
-    // Printings
-    printf("Dimensions: %d\n", dim);
-    printf("Nelements: %d\n", nelements);
+    // Initialize all distance balues as max (dim)
+    nelements = dim*dim;
+    dist = calloc(sizeof(int), nelements);
 
-    for (int i = 0; i < nelements; i++)
-    {
-        if (i % dim == 0) printf("\n");
-        printf("%d\t", matrix[i]);
+    // Prints the matrix
+    printf("%d\n",dim);
+    for (int i = 0; i < dim; i++) {
+        for (int j = 0; j < dim; j++) {
+            printf("%d ",matrix[j][i]);
+        }
+        printf("\n");
     }
-    printf("\n");
 
     free(matrix);
     return 0;
 }
 
 // Reads the file and allocates it to memory
-int* readFile(FILE *fp, int *nelements, int *dim) {
+int** readFile(FILE *fp, int *dim) {
     int num;
-    int *matrix;
+    int nelements = 0;
+    int *ptr;
+    int **matrix;
 
     // Reads the dimensions
     fread(&num, sizeof(int), 1, fp);
     *dim = num;
 
     // Allocate memory depending on dimensions
-    matrix = calloc(sizeof(int), *dim * *dim);
+    matrix = (int **) malloc(sizeof(int *) * *dim + sizeof(int) * *dim * *dim);
+    ptr = (int *)(matrix + *dim);
+
+    // Adds row pointers
+    for(int i = 0; i < *dim+1; i++) {
+        matrix[i] = (ptr + *dim * i); 
+    }
 
     // Reads the elements
     while (fread(&num, sizeof(int), 1, fp) != 0) {
-        matrix[(*nelements)++] = num;
+        matrix[nelements % *dim][nelements / *dim] = num;
+        nelements++;
     }
     
     return matrix;
@@ -98,3 +113,17 @@ void fileCheck(FILE *fp) {
     }
     return;
 }
+
+
+
+/** MPI Broadcast
+         *  One process sends the same information to every other process,
+         *  OpenMPI chooses the most optimal algorithm depending on the conditions
+         *  MPI_Bcast(void *buffer, int count, MPI_Datatype, int root, MPI_Comm comm)
+         *  @param buffer starting address of buffer
+         *  @param count number of entries in buffer
+         *  @param MPI_Datatype data type of the buffer
+         *  @param root rank of broadcast root
+         *  @param comm communicator
+        */
+        //mpierror = MPI_Bcast(b, dim, MPI_DOUBLE, root, MPI_COMM_WORLD);
