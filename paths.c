@@ -46,7 +46,7 @@ int main(int argc, char * argv[]) {
     printf("%d\n",dim);
     for (int i = 0; i < dim; i++) {
         for (int j = 0; j < dim; j++) {
-            printf("%d ",matrix[j][i]);
+            printf("%d ",matrix[i][j]);
         }
         printf("\n");
     }
@@ -77,7 +77,7 @@ int** readFile(FILE *fp, int *dim) {
 
     // Reads the elements
     while (fread(&num, sizeof(int), 1, fp) != 0) {
-        matrix[nelements % *dim][nelements / *dim] = num;
+        matrix[nelements / *dim][nelements % *dim] = num;
         nelements++;
     }
     
