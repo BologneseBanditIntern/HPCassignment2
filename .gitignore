@@ -3,5 +3,5 @@
 # Authors: Tomas Mijat 21721589 & Ethan Chin 22248878
 
 # Builds
-*.c
-*.exe
+paths
+paths.o

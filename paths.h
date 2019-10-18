@@ -5,4 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "mpi.h"
+
+char* getFileName(int argCount, char *argInput[]);
