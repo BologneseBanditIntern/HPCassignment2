@@ -12,3 +12,4 @@
 int** readFile(FILE *fp, int *dim);
 char* getFileName(int argCount, char *argInput[]);
 void fileCheck(FILE *fp);
+void dijkstra(int **matrix, int dim);
