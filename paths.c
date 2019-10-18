@@ -38,9 +38,74 @@ int main(int argc, char * argv[]) {
     matrix = readFile(fp, &dim);
     fclose(fp); 
 
-    // Initialize all distance balues as max (dim)
     nelements = dim*dim;
     dist = calloc(sizeof(int), nelements);
+
+    // Does dijkstra all shortest paths,
+    dijkstra(matrix, dim);
+
+    free(matrix);
+    return 0;
+}
+
+void dijkstra(int **matrix, int dim) {
+
+    // output array, holds the shortest distances
+    int dist[dim][dim];
+
+    // 1 if shortest distance has been found
+    int visited[dim][dim];
+
+    // Initialize all distance values as max (dim) and visited
+    for (int i = 0; i < dim; i++)
+    {
+        for (int j = 0; j < dim; j++)
+        {
+            dist[i][j] = dim;
+            visited[i][j] = 0;
+        }
+    }
+    
+    for (int n = 0; n < dim; n++) {
+
+        // distance from self is 0
+        dist[n][n] = 0;
+        
+        for (int count = 0; count < dim - 1; count++)
+        {
+            // Finds the min dist value, can be moved to a separate function
+            //int u = minDistance(dist, visited);
+            int min = dim;
+            int min_index;
+
+            for (int v = 0; v < dim; v++) {
+                if (!visited[n][v] && dist[n][v] <= min) {
+                    min = dist[n][v];
+                    min_index = v;
+                }           
+            }
+            // end of min
+
+            // set vertex as visited
+            int u = min_index;
+            visited[n][u] = 1;
+
+            for (int v = 0; v < dim; v++)
+            {
+                if (!visited[n][v] && matrix[u][v] && dist[n][u] != dim &&
+                    dist[n][u] + matrix[u][v] < dist[n][v]) {
+                        dist[n][v] = dist[n][u] + matrix[u][v];
+                }
+            }
+        }
+
+        // print
+        printf("Vertiex\t Distance\n");
+        for (int i = 0; i < dim; i++)
+        {
+            printf("Vertiex: %d Distance: %d\n", i, dist[n][i]);
+        }
+    }
 
     // Prints the matrix
     printf("%d\n",dim);
@@ -50,9 +115,6 @@ int main(int argc, char * argv[]) {
         }
         printf("\n");
     }
-
-    free(matrix);
-    return 0;
 }
 
 // Reads the file and allocates it to memory
