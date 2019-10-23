@@ -70,10 +70,10 @@ int main(int argc, char * argv[]) {
     */
     // broadcasts the number of dimensions
     mpierror = MPI_Bcast(&dim, 1, MPI_INT, root, MPI_COMM_WORLD); mpi_error_check(mpierror);
-    printf("DIM: %d %d\n", myRank, dim);
+    //printf("DIM: %d %d\n", myRank, dim);
 
     local_n = (dim * dim) / numProcs; // p / n
-    printf("local:%d\n", local_n);
+    //printf("local:%d\n", local_n);
 
     local_matrix = initMatrix(dim * local_n * sizeof(int));
     local_dist = initMatrix(local_n * sizeof(int));
@@ -81,16 +81,9 @@ int main(int argc, char * argv[]) {
     //mpierror = MPI_Scatter(root_matrix, local_n, MPI_INT, local_matrix, local_n, MPI_INT, root, MPI_COMM_WORLD);
     //mpi_error_check(mpierror);
 
-    for (int i = 0; i < local_n; i++)
-    {
-        printf("My process: %d Matrix: %d\n", myRank, local_matrix[i]);
-        local_matrix[i]++;
-    }
-
     // Reduce ALL
     //int local_min[2] = { 3, 2 };
     //int global_min[2];
-
 
     //mpierror = MPI_Allreduce(local_min, global_min, 2, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
     //printf("A Min: %d %d %d %d\n", local_min[0], local_min[1], global_min[0], global_min[1]);
