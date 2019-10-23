@@ -92,15 +92,22 @@ int main(int argc, char * argv[]) {
     //mpi_error_check(mpierror);
     
 
-    if (myRank == root && 0) {
+    if (myRank == root) {
         dist = dijkstra(root_matrix, dim);
+        int pos;
         
-        for (int i = 0; i < nelements; i++)
-        {
-            printf("%d ", root_matrix[i]);
-            if (i % 4 == 3) printf("\n");
+        // Prints the matrix
+        printf("Distance matrix:\n%d\n",dim);
+        for (int i = 0; i < dim; i++) {
+            for (int j = 0; j < dim; j++) {
+                pos = i * dim + j;
+                printf("%d ", dist[pos]);
+            }
+            printf("\n");
         }
+
         free(root_matrix);
+        free(dist);
     }
 
     //mpierror = MPI_Gather(matrix, partition, MPI_INT, root_matrix, partition, MPI_INT, root, MPI_COMM_WORLD);
@@ -187,24 +194,14 @@ int* dijkstra(int *matrix, int dim) {
         }
 
         // print
+        /*
         printf("Vertiex\t Distance\n");
         for (int i = 0; i < dim; i++)
         {
-            pos = n * dim + i;
-            printf("Vertiex: %d Distance: %d\n", i, dist[pos]);
+            printf("Vertiex: %d Distance: %d\n", i, dist[n * dim + i]);
         }
+        */
     }
-
-    // Prints the matrix
-    printf("%d\n",dim);
-    for (int i = 0; i < dim; i++) {
-        for (int j = 0; j < dim; j++) {
-            pos = i * dim + j;
-            printf("%d ",matrix[pos]);
-        }
-        printf("\n");
-    }
-    
 
     return dist;
 }
