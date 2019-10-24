@@ -22,6 +22,9 @@ int main(int argc, char * argv[]) {
     int root = 0;
     int local_n;
     int *dist;
+    clock_t timer_start, timer_end;
+
+    timer_start = clock();
 
     MPI_Status status;
     MPI_Init(&argc, &argv);
@@ -48,14 +51,14 @@ int main(int argc, char * argv[]) {
     nelements = dim * dim;
 
     if (myRank == root) {
+        /*
         for (int i = 0; i < nelements; i++)
         {
-            printf("%d ", root_matrix[i]);
-            if (i % 4 == 3) printf("\n");
+            printf("%d,", root_matrix[i]);
+            if (i % dim == dim-1) printf("\n");
         }
-
+        */
         root_dist = initMatrix(dim);
-        
     }
 
     /** MPI Broadcast
@@ -74,7 +77,7 @@ int main(int argc, char * argv[]) {
 
     // Each process will get a piece of the array
     local_n = (dim * dim) / numProcs; // p / n
-    if (myRank == root) printf("local:%d\n", local_n);
+    //if (myRank == root) printf("local:%d\n", local_n);
 
     local_matrix = initMatrix(dim * local_n * sizeof(int));
     local_dist = initMatrix(local_n * sizeof(int));
@@ -85,7 +88,7 @@ int main(int argc, char * argv[]) {
     */ 
     mpierror = MPI_Scatter(root_matrix, local_n, MPI_INT, local_matrix, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
-    printf("Scatter: Rank: %d, Array: %d %d %d %d\n", myRank, local_matrix[0], local_matrix[1], local_matrix[2], local_matrix[3]);
+    //printf("Scatter: Rank: %d, Array: %d %d %d %d\n", myRank, local_matrix[0], local_matrix[1], local_matrix[2], local_matrix[3]);
 
     // Reduce ALL
     //int local_min[2] = { 3, 2 };
@@ -107,14 +110,21 @@ int main(int argc, char * argv[]) {
     mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
 
+    /*
     if (myRank == root) {
-        printf("Distance matrix: \n");
+        //printf("Distance matrix: \n");
         for (int i = 0; i < nelements; i++)
         {
             printf("%d ", root_dist[i]);
-            if (i % 4 == 3) printf("\n");
+            if (i % dim == dim-1) printf("\n");
         }
     }
+    */
+
+    // Prints the time of the execution
+    timer_end = clock();
+    double timespent = (double) (timer_end - timer_start) / CLOCKS_PER_SEC;
+    printf("%d Time of execution: %f\n", myRank, timespent);
     
     free(root_dist);
     free(root_matrix);
