@@ -11,6 +11,7 @@
 // Function Declarations
 int* readFile(FILE *fp, int *dim);
 char* getFileName(int argCount, char *argInput[]);
+int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix);
 int* dijkstra(int *matrix, int dim);
 int* initMatrix(int dim);
 void memory_check(int *matrix);
