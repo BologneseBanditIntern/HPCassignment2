@@ -9,7 +9,10 @@
 #include "mpi.h"
 
 // Function Declarations
-int** readFile(FILE *fp, int *dim);
+int* readFile(FILE *fp, int *dim);
 char* getFileName(int argCount, char *argInput[]);
+int* dijkstra(int *matrix, int dim);
+int* initMatrix(int dim);
+void memory_check(int *matrix);
 void fileCheck(FILE *fp);
-void dijkstra(int **matrix, int dim);
+void mpi_error_check(int mpierror);
