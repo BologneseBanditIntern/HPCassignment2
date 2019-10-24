@@ -77,22 +77,22 @@ int main(int argc, char * argv[]) {
 
     // Each process will get a piece of the array
     local_n = (dim * dim) / numProcs; // p / n
-    //if (myRank == root) printf("local:%d\n", local_n);
+    if (myRank == root) printf("local:%d\n", local_n);
 
-    local_matrix = initMatrix(dim * local_n * sizeof(int));
-    local_dist = initMatrix(local_n * sizeof(int));
+    local_matrix = initMatrix(dim);
 
     /** MPI Scatter
      *  One process divides an array into pieces which are distributed among the processors
-     *  @param local_n number of elements being sent/received to one process
+     *  @param local_n number of elements being sent/received per process
     */ 
     mpierror = MPI_Scatter(root_matrix, local_n, MPI_INT, local_matrix, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
+
     //printf("Scatter: Rank: %d, Array: %d %d %d %d\n", myRank, local_matrix[0], local_matrix[1], local_matrix[2], local_matrix[3]);
 
     // Reduce ALL
-    //int local_min[2] = { 3, 2 };
-    //int global_min[2];
+    //int local_min[3] = { 3, 2 };
+    //int global_min[3];
 
     //mpierror = MPI_Allreduce(local_min, global_min, 2, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
     //printf("A Min: %d %d %d %d\n", local_min[0], local_min[1], global_min[0], global_min[1]);
@@ -106,7 +106,12 @@ int main(int argc, char * argv[]) {
 
     local_dist = dijkstraP(local_matrix, dim, local_n, myRank, root_matrix);
 
-    // Gathers
+    /** MPI Gather
+     *  Collects all the results from the processes into the root process.
+     *  Processors send their elements to the root array to be collected.
+     *  The elements are ordered by the rank of the process
+     *  sent_count is the number of elements received per process
+     */ 
     mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
 
@@ -141,7 +146,7 @@ int* initMatrix(int dim) {
 
     // Allocate memory depending on dimensions
     matrix = (int *) malloc(sizeof(int) * dim * dim);
-    memory_check(matrix);
+    memory_check(matrix, "initializing matrix");
     return matrix;
 }
 
@@ -151,7 +156,7 @@ int* initMatrixP(int dim) {
 
     // Allocate memory depending on dimensions
     matrix = (int *) malloc(sizeof(int) * dim);
-    memory_check(matrix);
+    memory_check(matrix, "initializing parallel matrix");
     return matrix;
 }
 
@@ -355,10 +360,11 @@ void fileCheck(FILE *fp) {
     return;
 }
 
-void memory_check(int *matrix) {
+void memory_check(int *matrix, char *msg) {
     if (matrix == NULL) {
-        printf("Memory allocation error\n");
+        
         fprintf(stderr, "Memory allocation error\n");
+        printf("Error with %s\n", msg);
         exit(EXIT_FAILURE);
     }
 }
@@ -370,9 +376,6 @@ void mpi_error_check(int mpierror){
         exit(EXIT_FAILURE);
     }
 }
-
-
-
 
 /** MPI All reduce
  *  Accessing a reduced result across all processes, similar to a mpi_reduce and mpi_broadcast
