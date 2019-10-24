@@ -79,7 +79,7 @@ int main(int argc, char * argv[]) {
     local_n = (dim * dim) / numProcs; // p / n
     if (myRank == root) printf("local:%d\n", local_n);
 
-    local_matrix = initMatrix(dim);
+    local_matrix = initMatrixP(local_n);
 
     /** MPI Scatter
      *  One process divides an array into pieces which are distributed among the processors
@@ -110,7 +110,8 @@ int main(int argc, char * argv[]) {
      *  Collects all the results from the processes into the root process.
      *  Processors send their elements to the root array to be collected.
      *  The elements are ordered by the rank of the process
-     *  sent_count is the number of elements received per process
+     *  local_n is the number of elements received per process
+     *  local_dist is the elements stored on the process which collected to the root_dist
      */ 
     mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
