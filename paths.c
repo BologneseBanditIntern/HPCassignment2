@@ -11,7 +11,8 @@
 
 int main(int argc, char * argv[]) {
 
-    FILE *fp;
+        FILE *fp;
+    MPI_File fileHandle;        //MPI File type
     int *root_matrix;
     int *root_dist;
     int *local_matrix;
@@ -30,7 +31,7 @@ int main(int argc, char * argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-
+    printf("The total number of processes is:\t%d\nThis is process:\t%d\n",numProcs,myRank);
     //Conditional checking for invalid command line argument. Could potentially check for greater then 3 or 4 based on the -f flag, however this may be overkill.
     if (argc < 2 )
     {
@@ -38,17 +39,88 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
     char * file = getFileName( argc, argv );
-    if (myRank == root) printf("The file name is:\t%s\n%d\n", file,argc);
+    if (myRank == root) printf("The file name is:\t%s\n", file);
+
+    if(myRank == root)  //if root process, then find the number of dimensions
+    {
+        FILE *fileDims = fopen(file,"rb");
+        dim = readFileDims(fileDims);
+        fclose(fileDims);
+    }
+
+    /** MPI Broadcast
+     *  One process sends the same information to every other process,
+     *  OpenMPI chooses the most optimal algorithm depending on the conditions
+     *  MPI_Bcast(void *buffer, int count, MPI_Datatype, int root, MPI_Comm comm)
+     *  @param buffer starting address of buffer
+     *  @param count number of entries in buffer
+     *  @param MPI_Datatype data type of the buffer
+     *  @param root rank of broadcast root
+     *  @param comm communicator
+    */
+    // Broadcast the numebr of dimensions
+    mpierror = MPI_Bcast(&dim, 1, MPI_INT, root, MPI_COMM_WORLD); mpi_error_check(mpierror);
+    MPI_Barrier(MPI_COMM_WORLD);
+    nelements = dim * dim;
 
     // Open file
-    fp = fopen(file, "rb");
-    fileCheck(fp);
+    MPI_File_open(MPI_COMM_WORLD,file,MPI_MODE_RDONLY,MPI_INFO_NULL,&fileHandle);
 
-    // Reads the file data and sets the matrix array
-    root_matrix = readFile(fp, &dim);
-    fclose(fp);
+    //Use collective call to read file
+    int elementsPerProcess = nelements / numProcs;
+    while((elementsPerProcess * numProcs) < nelements) //Dividing work evenly (ish) Idea is that if the remaining parts of data is too great, then increase the amount of data each process should gather by 1
+    {
+        elementsPerProcess++;
+    }
+    int elementsLastProcess = nelements - (elementsPerProcess * (numProcs-1));      //Assigning a smaller number to the last process
 
-    nelements = dim * dim;
+    if(myRank == root)  printf("The number of elements read per process is:\t%d\nWith the last process reading:\t %d  elements\n",elementsPerProcess,elementsLastProcess);
+
+    //Reading of the file
+    int * partialMatrix;
+
+
+    //Allocating memory to the for partial matrix then reading file to processes
+    if(myRank == (numProcs - 1) && numProcs > 1)
+    {
+        MPI_Offset offset = 1 + (myRank * elementsPerProcess);
+        partialMatrix = malloc(elementsLastProcess*sizeof(int));
+        MPI_File_sync(fileHandle);
+        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsLastProcess*sizeof(int),MPI_INT,&status);
+        mpi_error_check(mpierror);
+    }
+    else
+    {
+        MPI_Offset offset = 1 + (myRank * elementsPerProcess);
+        partialMatrix = malloc(elementsPerProcess * sizeof(int));
+        MPI_File_sync(fileHandle);
+        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsPerProcess*sizeof(int),MPI_INT,&status);
+        mpi_error_check(mpierror);
+    }
+
+    /*
+    if(mpierror == MPI_SUCCESS)
+    {
+        printf("\nThe read was successful!\n\n");
+    }
+    */
+
+    MPI_File_close(&fileHandle);        //Closing the file after finishing reading.
+
+    //Giving all processes the contents of the file
+    root_matrix = (int *) malloc((dim*dim) * sizeof(int));     //Allocated pointer space for root matrix.
+
+    if(myRank == (numProcs - 1) && numProcs > 1)
+    {   //All gather statement for the final process (might have less elements)
+        mpierror = MPI_Allgather(partialMatrix,elementsLastProcess,MPI_INT,root_matrix,elementsPerProcess,MPI_INT,MPI_COMM_WORLD);
+        mpi_error_check(mpierror);
+    }
+    else
+    {   //All gather statement for every other process
+        mpierror = MPI_Allgather(partialMatrix,elementsPerProcess,MPI_INT,root_matrix,elementsPerProcess,MPI_INT,MPI_COMM_WORLD);
+        mpi_error_check(mpierror);
+         
+    }
 
     if (myRank == root) {
         /*
@@ -76,7 +148,8 @@ int main(int argc, char * argv[]) {
     //printf("DIM: %d %d\n", myRank, dim);
 
     // Each process will get a piece of the array
-    local_n = (dim * dim) / numProcs; // p / n
+    if(myRank != (numProcs-1)) local_n = elementsPerProcess; // p / n
+    else local_n = elementsLastProcess;
     if (myRank == root) printf("local:%d\n", local_n);
 
     local_matrix = initMatrixP(local_n);
@@ -334,6 +407,16 @@ int* readFile(FILE *fp, int *dim) {
     }
     
     return matrix;
+}
+
+// Reads the file and allocates it to memory
+int readFileDims(FILE *fp) {
+    int num;
+
+
+    // Reads the dimensions
+    fread(&num, sizeof(int), 1, fp);
+    return num;
 }
 
 //This function takes the command line arguments i.e. argc and argv and returns a char pointer, which is the filename/ file path.
