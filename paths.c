@@ -24,8 +24,6 @@ int main(int argc, char * argv[]) {
     int *dist;
     clock_t timer_start, timer_end;
 
-    timer_start = clock();
-
     MPI_Status status;
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
@@ -52,12 +50,14 @@ int main(int argc, char * argv[]) {
 
     if (myRank == root) {
         /*
+        printf("File matrix:\n");
         for (int i = 0; i < nelements; i++)
         {
-            printf("%d,", root_matrix[i]);
+            printf("%d ", root_matrix[i]);
             if (i % dim == dim-1) printf("\n");
         }
         */
+        
         root_dist = initMatrix(dim);
     }
 
@@ -77,12 +77,16 @@ int main(int argc, char * argv[]) {
 
     // Each process will get a piece of the array
     local_n = (dim * dim) / numProcs; // p / n
-    if (myRank == root) printf("local:%d\n", local_n);
+    //if (myRank == root) printf("local:%d\n", local_n);
 
     local_matrix = initMatrixP(local_n);
 
+    // Start time of operations
+    timer_start = clock();
+
     /** MPI Scatter
      *  One process divides an array into pieces which are distributed among the processors
+     *  The root_matrix is split 
      *  @param local_n number of elements being sent/received per process
     */ 
     mpierror = MPI_Scatter(root_matrix, local_n, MPI_INT, local_matrix, local_n, MPI_INT, root, MPI_COMM_WORLD);
@@ -116,21 +120,17 @@ int main(int argc, char * argv[]) {
     mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
 
-    /*
+    
     if (myRank == root) {
-        //printf("Distance matrix: \n");
-        for (int i = 0; i < nelements; i++)
-        {
-            printf("%d ", root_dist[i]);
-            if (i % dim == dim-1) printf("\n");
-        }
+        // Prints the distance matrix
+        printDistance(root_dist, dim, nelements);
     }
-    */
+    
 
     // Prints the time of the execution
     timer_end = clock();
     double timespent = (double) (timer_end - timer_start) / CLOCKS_PER_SEC;
-    printf("%d Time of execution: %f\n", myRank, timespent);
+    printf("%lf\n", timespent);
     
     free(root_dist);
     free(root_matrix);
@@ -190,28 +190,30 @@ int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix) 
             // Finds the min dist value, can be moved to a separate function
             //int u = minDistance(dist, visited);
             int min = dim;
-            int min_index;
+            int u;
 
             for (int v = 0; v < dim; v++) {
                 pos = n * dim + v;
                 if (visited[pos] == 0 && dist[pos] <= min) {
                     min = dist[pos];
-                    min_index = v;
+                    u = v;
                 }
             }
             // end of min
 
             // set vertex as visited
-            int u = min_index;
             visited[n * dim + u] = 1;
+            
+
             //printf("U: %d\n", u);
 
             for (int v = 0; v < dim; v++)
             {
                 pos = n * dim + v;
-                //printf("%d, %d, %d, %d, %d, %d, %d\n", visited[pos], root_matrix[u * dim + v], dist[n*dim+u], dist[pos], v , u, pos);
+                
                 if (!visited[pos] && root_matrix[u * dim + v] && dist[n * dim + u] != dim &&
                     dist[n * dim + u] + root_matrix[u * dim + v] < dist[pos]) {
+                    //printf("%d, %d, %d, %d, %d, %d, %d, %d\n", visited[pos], root_matrix[u * dim + v], dist[n*dim+u], dist[pos], v , u, pos, n);
                     dist[pos] = dist[n * dim + u] + root_matrix[u * dim + v];
                 }
             }
@@ -229,6 +231,7 @@ int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix) 
         }
         */
     }
+    free(visited);
 
     return dist;
 }
@@ -350,6 +353,16 @@ char* getFileName(int argCount, char *argInput[])
         }
     }
     return fileName;
+}
+
+// Prints the distance matrix
+void printDistance(int *root_dist, int dim, int nelements) {
+    printf("Distance matrix: \n");
+    for (int i = 0; i < nelements; i++)
+    {
+        printf("%d ", root_dist[i]);
+        if (i % dim == dim-1) printf("\n");
+    }
 }
 
 // Checks that the file can be opened
