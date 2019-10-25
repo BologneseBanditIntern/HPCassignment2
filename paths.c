@@ -132,12 +132,17 @@ int main(int argc, char * argv[]) {
     double timespent = (double) (timer_end - timer_start) / CLOCKS_PER_SEC;
     printf("%d Time of execution: %f\n", myRank, timespent);
     
-    free(root_dist);
+    if(myRank == root) free(root_dist);
     free(root_matrix);
     free(dist);
     free(local_matrix);
     free(local_dist);
+    
+
+    
     MPI_Finalize();
+
+
     return 0;
 }
 
