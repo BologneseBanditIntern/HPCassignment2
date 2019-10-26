@@ -86,7 +86,7 @@ int main(int argc, char * argv[]) {
         MPI_Offset offset = 1 + (myRank * elementsPerProcess);
         partialMatrix = malloc(elementsLastProcess*sizeof(int));
         MPI_File_sync(fileHandle);
-        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsLastProcess,MPI_INT,&status);
+        mpierror = MPI_File_read_at_all(fileHandle,offset*sizeof(int),partialMatrix,elementsLastProcess,MPI_INT,&status);
         mpi_error_check(mpierror);
     }
     else
@@ -94,7 +94,7 @@ int main(int argc, char * argv[]) {
         MPI_Offset offset = 1 + (myRank * elementsPerProcess);
         partialMatrix = malloc(elementsPerProcess * sizeof(int));
         MPI_File_sync(fileHandle);
-        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsPerProcess,MPI_INT,&status);
+        mpierror = MPI_File_read_at_all(fileHandle,offset*sizeof(int),partialMatrix,elementsPerProcess,MPI_INT,&status);
         mpi_error_check(mpierror);
     }
 
