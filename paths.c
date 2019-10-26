@@ -45,12 +45,14 @@ int main(int argc, char * argv[]) {
         FILE *fileDims = fopen(file,"rb");
         if(fileDims == NULL)
         {
-            printf("The inputted file does not exist or cannot be openned. Please try again.");
-            MPI_Finalize();
-            return 0;
+            printf("The inputted file does not exist or cannot be openned. Please check inputs and  try again.\n");
+            dim = -1;
         }
+        else
+        {
         dim = readFileDims(fileDims);
         fclose(fileDims);
+        }
     }
 
     /** MPI Broadcast
@@ -66,6 +68,11 @@ int main(int argc, char * argv[]) {
     // Broadcast the numebr of dimensions
     mpierror = MPI_Bcast(&dim, 1, MPI_INT, root, MPI_COMM_WORLD); mpi_error_check(mpierror);
     MPI_Barrier(MPI_COMM_WORLD);
+    if(dim == -1){      //If file can not be accessed, gracefully terminate.
+        MPI_Finalize();
+        return 0;
+    }
+    
     nelements = dim * dim;
 
     // Open file
