@@ -31,7 +31,6 @@ int main(int argc, char * argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-    printf("The total number of processes is:\t%d\nThis is process:\t%d\n",numProcs,myRank);
     //Conditional checking for invalid command line argument. Could potentially check for greater then 3 or 4 based on the -f flag, however this may be overkill.
     if (argc < 2 )
     {
@@ -39,11 +38,17 @@ int main(int argc, char * argv[]) {
         exit(0);
     }
     char * file = getFileName( argc, argv );
-    if (myRank == root) printf("The file name is:\t%s\n", file);
+    //if (myRank == root) printf("The file name is:\t%s\n", file);
 
     if(myRank == root)  //if root process, then find the number of dimensions
     {
         FILE *fileDims = fopen(file,"rb");
+        if(fileDims == NULL)
+        {
+            printf("The inputted file does not exist or cannot be openned. Please try again.");
+            MPI_Finalize();
+            return 0;
+        }
         dim = readFileDims(fileDims);
         fclose(fileDims);
     }
@@ -74,7 +79,7 @@ int main(int argc, char * argv[]) {
     }
     int elementsLastProcess = nelements - (elementsPerProcess * (numProcs-1));      //Assigning a smaller number to the last process
 
-    if(myRank == root)  printf("The number of elements read per process is:\t%d\nWith the last process reading:\t %d  elements\n",elementsPerProcess,elementsLastProcess);
+    //if(myRank == root)  printf("The number of elements read per process is:\t%d\nWith the last process reading:\t %d  elements\n",elementsPerProcess,elementsLastProcess);
 
     //Reading of the file
     int * partialMatrix;
