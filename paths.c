@@ -123,12 +123,13 @@ int main(int argc, char * argv[]) {
     }
 
     if (myRank == root) {
-        
+        /*
         for (int i = 0; i < nelements; i++)
         {
             printf("%d,", root_matrix[i]);
             if (i % dim == dim-1) printf("\n");
         }
+        */
         root_dist = initMatrix(dim);
     }
 
