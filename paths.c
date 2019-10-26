@@ -25,8 +25,13 @@ int main(int argc, char * argv[]) {
     clock_t timer_start, timer_end;
 
     MPI_Status status;
+    // Initializes the MPI execution environment, given argument parameters
     MPI_Init(&argc, &argv);
+
+    // The number of processes associated with the communicatorm
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+
+    // The rank of the process in the communicator, 0 is root, increments afterwards
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
     //Conditional checking for invalid command line argument. Could potentially check for greater then 3 or 4 based on the -f flag, however this may be overkill.
@@ -61,30 +66,12 @@ int main(int argc, char * argv[]) {
         root_dist = initMatrix(dim);
     }
 
-    /** MPI Broadcast
-     *  One process sends the same information to every other process,
-     *  OpenMPI chooses the most optimal algorithm depending on the conditions
-     *  MPI_Bcast(void *buffer, int count, MPI_Datatype, int root, MPI_Comm comm)
-     *  @param buffer starting address of buffer
-     *  @param count number of entries in buffer
-     *  @param MPI_Datatype data type of the buffer
-     *  @param root rank of broadcast root
-     *  @param comm communicator
-    */
-    // broadcasts the number of dimensions
-    //mpierror = MPI_Bcast(&dim, 1, MPI_INT, root, MPI_COMM_WORLD); mpi_error_check(mpierror);
-    //printf("DIM: %d %d\n", myRank, dim);
-
     // Each process will get a piece of the array
     local_n = (dim * dim) / numProcs; // p / n
     //if (myRank == root) printf("local:%d\n", local_n);
 
     // Start time of operations
     timer_start = clock();
-
-    if (myRank == root) {
-        //root_dist = dijkstra(root_matrix, dim);
-    }
 
     local_dist = dijkstraP(dim, local_n, myRank, root_matrix);
 
@@ -103,7 +90,7 @@ int main(int argc, char * argv[]) {
         // Prints the distance matrix
         printDistance(root_dist, dim, nelements);
     }
-    
+
 
     // Prints the time of the execution
     timer_end = clock();
@@ -115,7 +102,8 @@ int main(int argc, char * argv[]) {
     free(local_dist);
     
 
-    
+    // This function terminates the MPI execution environment.
+    // All processes must call this routine before exiting
     MPI_Finalize();
 
 
