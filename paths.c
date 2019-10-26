@@ -86,7 +86,7 @@ int main(int argc, char * argv[]) {
         MPI_Offset offset = 1 + (myRank * elementsPerProcess);
         partialMatrix = malloc(elementsLastProcess*sizeof(int));
         MPI_File_sync(fileHandle);
-        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsLastProcess*sizeof(int),MPI_INT,&status);
+        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsLastProcess,MPI_INT,&status);
         mpi_error_check(mpierror);
     }
     else
@@ -94,7 +94,7 @@ int main(int argc, char * argv[]) {
         MPI_Offset offset = 1 + (myRank * elementsPerProcess);
         partialMatrix = malloc(elementsPerProcess * sizeof(int));
         MPI_File_sync(fileHandle);
-        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsPerProcess*sizeof(int),MPI_INT,&status);
+        mpierror = MPI_File_read_at(fileHandle,offset*sizeof(int),partialMatrix,elementsPerProcess,MPI_INT,&status);
         mpi_error_check(mpierror);
     }
 
@@ -123,13 +123,12 @@ int main(int argc, char * argv[]) {
     }
 
     if (myRank == root) {
-        /*
+        
         for (int i = 0; i < nelements; i++)
         {
             printf("%d,", root_matrix[i]);
             if (i % dim == dim-1) printf("\n");
         }
-        */
         root_dist = initMatrix(dim);
     }
 
