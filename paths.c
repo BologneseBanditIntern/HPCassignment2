@@ -11,7 +11,7 @@
 
 int main(int argc, char * argv[]) {
 
-        FILE *fp;
+     FILE *fp;
     MPI_File fileHandle;        //MPI File type
     int *root_matrix;
     int *root_dist;
@@ -124,12 +124,14 @@ int main(int argc, char * argv[]) {
 
     if (myRank == root) {
         /*
+        printf("File matrix:\n");
         for (int i = 0; i < nelements; i++)
         {
-            printf("%d,", root_matrix[i]);
+            printf("%d ", root_matrix[i]);
             if (i % dim == dim-1) printf("\n");
         }
         */
+        
         root_dist = initMatrix(dim);
     }
 
@@ -148,36 +150,17 @@ int main(int argc, char * argv[]) {
     //printf("DIM: %d %d\n", myRank, dim);
 
     // Each process will get a piece of the array
-    if(myRank != (numProcs-1)) local_n = elementsPerProcess; // p / n
-    else local_n = elementsLastProcess;
-    if (myRank == root) printf("local:%d\n", local_n);
+    local_n = (dim * dim) / numProcs; // p / n
+    //if (myRank == root) printf("local:%d\n", local_n);
 
-    local_matrix = initMatrixP(local_n);
-
-    /** MPI Scatter
-     *  One process divides an array into pieces which are distributed among the processors
-     *  @param local_n number of elements being sent/received per process
-    */ 
-    mpierror = MPI_Scatter(root_matrix, local_n, MPI_INT, local_matrix, local_n, MPI_INT, root, MPI_COMM_WORLD);
-    mpi_error_check(mpierror);
-
-    //printf("Scatter: Rank: %d, Array: %d %d %d %d\n", myRank, local_matrix[0], local_matrix[1], local_matrix[2], local_matrix[3]);
-
-    // Reduce ALL
-    //int local_min[3] = { 3, 2 };
-    //int global_min[3];
-
-    //mpierror = MPI_Allreduce(local_min, global_min, 2, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-    //printf("A Min: %d %d %d %d\n", local_min[0], local_min[1], global_min[0], global_min[1]);
-    
-    //mpierror = MPI_Gather(local_matrix, local_n, MPI_INT, root_matrix, local_n, MPI_INT, root, MPI_COMM_WORLD);
-    //mpi_error_check(mpierror);
+    // Start time of operations
+    timer_start = clock();
 
     if (myRank == root) {
         //root_dist = dijkstra(root_matrix, dim);
     }
 
-    local_dist = dijkstraP(local_matrix, dim, local_n, myRank, root_matrix);
+    local_dist = dijkstraP(dim, local_n, myRank, root_matrix);
 
     /** MPI Gather
      *  Collects all the results from the processes into the root process.
@@ -189,26 +172,20 @@ int main(int argc, char * argv[]) {
     mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
 
-    /*
+    
     if (myRank == root) {
-        //printf("Distance matrix: \n");
-        for (int i = 0; i < nelements; i++)
-        {
-            printf("%d ", root_dist[i]);
-            if (i % dim == dim-1) printf("\n");
-        }
+        // Prints the distance matrix
+        printDistance(root_dist, dim, nelements);
     }
-    */
+    
 
     // Prints the time of the execution
     timer_end = clock();
     double timespent = (double) (timer_end - timer_start) / CLOCKS_PER_SEC;
-    printf("%d Time of execution: %f\n", myRank, timespent);
+    printf("%lf\n", timespent);
     
     if(myRank == root) free(root_dist);
     free(root_matrix);
-    free(dist);
-    free(local_matrix);
     free(local_dist);
     
 
@@ -239,7 +216,7 @@ int* initMatrixP(int dim) {
     return matrix;
 }
 
-int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix) {
+int* dijkstraP(int dim, int local_n, int myRank, int *root_matrix) {
 
     // output array, holds the shortest distances
     int *dist = initMatrixP(local_n);
@@ -248,6 +225,7 @@ int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix) 
     int *visited = initMatrixP(local_n);
 
     int pos;
+    int rows = local_n / dim;
 
     // Initialize all distance values as max (dim) and visited
     for (int i = 0; i < local_n; i++)
@@ -257,10 +235,10 @@ int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix) 
     }
     //printf("My Rank: %d:  %d, %d, %d, %d\n", myRank, matrix[0], matrix[1], matrix[2] ,matrix[3]);
     // iterates through all vertices
-    for (int n = 0; n < local_n / dim; n++) {
+    for (int n = 0; n < rows; n++) {
 
         // distance from self is 0
-        dist[(n * dim + n) + myRank * local_n / dim] = 0;
+        dist[(n * dim + n) + myRank * rows] = 0;
 
         // Finds the shortest paths for all verticies from n
         for (int count = 0; count < dim - 1; count++)
@@ -268,28 +246,27 @@ int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix) 
             // Finds the min dist value, can be moved to a separate function
             //int u = minDistance(dist, visited);
             int min = dim;
-            int min_index;
+            int u;
 
             for (int v = 0; v < dim; v++) {
                 pos = n * dim + v;
                 if (visited[pos] == 0 && dist[pos] <= min) {
                     min = dist[pos];
-                    min_index = v;
+                    u = v;
                 }
             }
             // end of min
 
             // set vertex as visited
-            int u = min_index;
             visited[n * dim + u] = 1;
-            //printf("U: %d\n", u);
+            //printf("U: %d %d\n", u, myRank);
 
             for (int v = 0; v < dim; v++)
             {
                 pos = n * dim + v;
-                //printf("%d, %d, %d, %d, %d, %d, %d\n", visited[pos], root_matrix[u * dim + v], dist[n*dim+u], dist[pos], v , u, pos);
                 if (!visited[pos] && root_matrix[u * dim + v] && dist[n * dim + u] != dim &&
                     dist[n * dim + u] + root_matrix[u * dim + v] < dist[pos]) {
+                    //printf("%d, %d, %d, %d, %d, %d, %d, %d\n", visited[pos], root_matrix[u * dim + v], dist[n*dim+u], dist[pos], v , u, pos, n);
                     dist[pos] = dist[n * dim + u] + root_matrix[u * dim + v];
                 }
             }
@@ -299,14 +276,12 @@ int* dijkstraP(int *matrix, int dim, int local_n, int myRank, int *root_matrix) 
         printf("Vertiex\t Distance\n");
         for (int i = 0; i < dim; i++)
         {
-            for (int j = 0; j < dim; j++)
-            {
-                printf("%d ", dist[i * dim + j]);
-            }
-            printf("\n");
+            printf("%d ", dist[i]);
         }
         */
+        
     }
+    free(visited);
 
     return dist;
 }
@@ -419,6 +394,7 @@ int readFileDims(FILE *fp) {
     return num;
 }
 
+
 //This function takes the command line arguments i.e. argc and argv and returns a char pointer, which is the filename/ file path.
 char* getFileName(int argCount, char *argInput[])
 {   
@@ -438,6 +414,16 @@ char* getFileName(int argCount, char *argInput[])
         }
     }
     return fileName;
+}
+
+// Prints the distance matrix
+void printDistance(int *root_dist, int dim, int nelements) {
+    printf("Distance matrix: \n");
+    for (int i = 0; i < nelements; i++)
+    {
+        printf("%d ", root_dist[i]);
+        if (i % dim == dim-1) printf("\n");
+    }
 }
 
 // Checks that the file can be opened
