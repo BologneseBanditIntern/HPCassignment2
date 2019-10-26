@@ -23,9 +23,9 @@ int main(int argc, char * argv[]) {
     int root = 0;
     int local_n;
     int *dist;
-    clock_t timer_start, timer_end;
+    clock_t shortPath_start, shortPath_end, file_start, file_end;
 
-    timer_start = clock();
+    file_start = clock();
 
     MPI_Status status;
     MPI_Init(&argc, &argv);
@@ -37,6 +37,7 @@ int main(int argc, char * argv[]) {
         printf("An invalid number of arguments has be inputted. \nPlease check your command line arguments.\n");
         exit(0);
     }
+
     char * file = getFileName( argc, argv );
     if (myRank == root) printf("The file name is:\t%s\n", file);
 
@@ -133,6 +134,9 @@ int main(int argc, char * argv[]) {
          
     }
 
+    file_end = clock();
+    double timespentFile = (double) (file_end - file_start) / CLOCKS_PER_SEC;       //Measure time spent reading the input file
+
     if (myRank == root) {
         /*
         printf("File matrix:\n");
@@ -164,8 +168,8 @@ int main(int argc, char * argv[]) {
     local_n = (dim * dim) / numProcs; // p / n
     //if (myRank == root) printf("local:%d\n", local_n);
 
-    // Start time of operations
-    timer_start = clock();
+    // Start time of shortest path operations
+    shortPath_start = clock();
 
     if (myRank == root) {
         //root_dist = dijkstra(root_matrix, dim);
@@ -183,17 +187,18 @@ int main(int argc, char * argv[]) {
     mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
 
-    
+    /*
     if (myRank == root) {
         // Prints the distance matrix
         printDistance(root_dist, dim, nelements);
     }
+    */
     
 
     // Prints the time of the execution
-    timer_end = clock();
-    double timespent = (double) (timer_end - timer_start) / CLOCKS_PER_SEC;
-    printf("%lf\n", timespent);
+    shortPath_end = clock();
+    double timespentShortPath = (double) (shortPath_end - shortPath_start) / CLOCKS_PER_SEC;
+    printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\n\n",myRank,timespentFile,timespentShortPath);
     
     if(myRank == root) free(root_dist);
     free(root_matrix);
