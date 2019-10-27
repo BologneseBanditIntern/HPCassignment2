@@ -200,43 +200,39 @@ int main(int argc, char * argv[]) {
   
     // Open file
     MPI_File_open(MPI_COMM_WORLD,outFile,MPI_MODE_WRONLY | MPI_MODE_CREATE,MPI_INFO_NULL,&writeHandle);
+
+
+
     if(myRank == root)
     {
         int * dimBuff = malloc(sizeof(int));
         dimBuff = &dim;
-        mpierror = MPI_File_write_at_all(writeHandle,0,dimBuff,1,MPI_INT,&status);
+        mpierror = MPI_File_write_at(writeHandle,0,dimBuff,1,MPI_INT,&status);
         mpi_error_check(mpierror);  
     }
-    //Write data to file;
-    MPI_Offset offset = 1 + (myRank * elementsPerProcess);
-    MPI_File_sync(fileHandle);
-    mpierror = MPI_File_write_at_all(writeHandle,offset*sizeof(int),local_dist,elementsPerProcess,MPI_INT,&status);
-    mpi_error_check(mpierror);
+        //Write data to file;
+    if(myRank == (numProcs - 1) && numProcs > 1)
+    {   //Collective write statement for the final process (might have less elements)
+        MPI_Offset offset = 1 + (myRank * elementsLastProcess);
+        mpierror = MPI_File_write_at_all(writeHandle,offset*sizeof(int),local_dist,elementsLastProcess,MPI_INT,&status);
+        mpi_error_check(mpierror);
+    }
+    else
+    {   //Collective write statement for every other process
+        MPI_Offset offset = 1 + (myRank * elementsPerProcess);
+        mpierror = MPI_File_write_at_all(writeHandle,offset*sizeof(int),local_dist,elementsPerProcess,MPI_INT,&status);
+        mpi_error_check(mpierror);
+         
+    }
+
 
     MPI_File_close(&writeHandle);
 
     write_end = clock();
     double timespentWrite = (double) (write_end - write_start) / CLOCKS_PER_SEC;
    
-    /** MPI Gather      ****COMMENTED OUT BECAUSE NOW REDUNENT.****
-     *  Collects all the results from the processes into the root process.
-     *  Processors send their elements to the root array to be collected.
-     *  The elements are ordered by the rank of the process
-     *  local_n is the number of elements received per process
-     *  local_dist is the elements stored on the process which collected to the root_dist
- 
-    mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
-    mpi_error_check(mpierror);
-
-    if (myRank == root) {
-        // Prints the distance matrix
-        printDistance(root_dist, dim, nelements);
-    }
-    */
-    
-
-    
-        printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\nTime spent writing file to output file:\t%lf\nOverall time of program is:\t%lf\n\n",myRank,timespentFile,timespentShortPath,timespentWrite,(timespentFile+timespentShortPath+timespentWrite));
+        //Printing timing information for program 
+    printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\nTime spent writing file to output file:\t%lf\nOverall time of program is:\t%lf\n\n",myRank,timespentFile,timespentShortPath,timespentWrite,(timespentFile+timespentShortPath+timespentWrite));
     
     if(myRank == root) free(root_dist);
     free(root_matrix);
