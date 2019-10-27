@@ -30,8 +30,13 @@ int main(int argc, char * argv[]) {
     file_start = clock();
 
     MPI_Status status;
+    // Initializes the MPI execution environment, given argument parameters
     MPI_Init(&argc, &argv);
+
+    // The number of processes associated with the communicatorm
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+
+    // The rank of the process in the communicator, 0 is root, increments afterwards
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     //Conditional checking for invalid command line argument. Could potentially check for greater then 3 or 4 based on the -f flag, however this may be overkill.
     if (argc < 2 )
@@ -141,23 +146,6 @@ int main(int argc, char * argv[]) {
         }
         */
 
-    }
-
-    // ******Section of the code regarding the Shortest Path Algorithm *****
-    /** MPI Broadcast
-     *  One process sends the same information to every other process,
-     *  OpenMPI chooses the most optimal algorithm depending on the conditions
-     *  MPI_Bcast(void *buffer, int count, MPI_Datatype, int root, MPI_Comm comm)
-     *  @param buffer starting address of buffer
-     *  @param count number of entries in buffer
-     *  @param MPI_Datatype data type of the buffer
-     *  @param root rank of broadcast root
-     *  @param comm communicator
-    */
-    // broadcasts the number of dimensions
-    //mpierror = MPI_Bcast(&dim, 1, MPI_INT, root, MPI_COMM_WORLD); mpi_error_check(mpierror);
-    //printf("DIM: %d %d\n", myRank, dim);
-
     // Each process will get a piece of the array
     local_n = (dim * dim) / numProcs; // p / n
     //if (myRank == root) printf("local:%d\n", local_n);
@@ -169,11 +157,11 @@ int main(int argc, char * argv[]) {
         //root_dist = dijkstra(root_matrix, dim);
     }
 
+
     local_dist = dijkstraP(dim, local_n, myRank, root_matrix);
 
      shortPath_end = clock();
     double timespentShortPath = (double) (shortPath_end - shortPath_start) / CLOCKS_PER_SEC;
-
 
    //***Writing of the output file****
     
@@ -223,11 +211,15 @@ int main(int argc, char * argv[]) {
    
         //Printing timing information for program 
     printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\nTime spent writing file to output file:\t%lf\nOverall time of program is:\t%lf\n\n",myRank,timespentFile,timespentShortPath,timespentWrite,(timespentFile+timespentShortPath+timespentWrite));
+
     
     //Cleaning up allocated memory
     free(root_matrix);
     free(local_dist);
-    
+
+    // This function terminates the MPI execution environment.
+    // All processes must call this routine before exiting
+
     MPI_Finalize();
 
     return 0;
