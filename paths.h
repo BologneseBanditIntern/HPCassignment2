@@ -6,13 +6,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "mpi.h"
 
 // Function Declarations
 int* readFile(FILE *fp, int *dim);
 char* getFileName(int argCount, char *argInput[]);
+int* dijkstraP(int dim, int local_n, int myRank, int *root_matrix);
 int* dijkstra(int *matrix, int dim);
 int* initMatrix(int dim);
-void memory_check(int *matrix);
+int* initMatrixP(int dim);
+void printDistance(int *root_dist, int dim, int nelements);
+void memory_check(int *matrix, char *msg);
 void fileCheck(FILE *fp);
 void mpi_error_check(int mpierror);
