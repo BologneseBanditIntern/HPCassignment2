@@ -5,3 +5,11 @@
 # Builds
 paths
 paths.o
+examples/4.out
+examples/16.out
+examples/32.out
+examples/256.out
+examples/512.out
+examples/1024.out
+examples/2048.out
+examples/4096.out

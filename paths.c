@@ -136,7 +136,6 @@ int main(int argc, char * argv[]) {
 
     file_end = clock();
     double timespentFile = (double) (file_end - file_start) / CLOCKS_PER_SEC;       //Measure time spent reading the input file
-
     if (myRank == root) {
         /*
         printf("File matrix:\n");
@@ -177,6 +176,37 @@ int main(int argc, char * argv[]) {
 
     local_dist = dijkstraP(dim, local_n, myRank, root_matrix);
 
+   
+   //Instead of gathering the output, each process can write their part to the file.
+    
+    //Init variable for writing
+   MPI_File writeHandle;
+   char outExtension[] = ".out";
+   char * token;
+   //String manipultion to form outfile name.
+   token = strtok(file,".in");
+   int outFileLength = sizeof(token)/sizeof(char);
+   char *outFile = (char *) malloc((outFileLength + 5)/sizeof(char));
+   strcpy(outFile, token);
+   strcat(outFile,outExtension);
+  
+    // Open file
+    MPI_File_open(MPI_COMM_WORLD,outFile,MPI_MODE_WRONLY | MPI_MODE_CREATE,MPI_INFO_NULL,&writeHandle);
+    if(myRank == root)
+    {
+        int * dimBuff = malloc(sizeof(int));
+        dimBuff = &dim;
+        mpierror = MPI_File_write_at(writeHandle,0,dimBuff,1,MPI_INT,&status);
+        mpi_error_check(mpierror);  
+    }
+    //Write data to file;
+    MPI_Offset offset = 1 + (myRank * elementsPerProcess);
+    MPI_File_sync(fileHandle);
+    mpierror = MPI_File_write_at(writeHandle,offset*sizeof(int),local_dist,elementsPerProcess,MPI_INT,&status);
+    mpi_error_check(mpierror);
+
+    MPI_File_close(&writeHandle);
+   
     /** MPI Gather
      *  Collects all the results from the processes into the root process.
      *  Processors send their elements to the root array to be collected.
