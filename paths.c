@@ -23,7 +23,7 @@ int main(int argc, char * argv[]) {
     int root = 0;
     int local_n;
     int *dist;
-    clock_t shortPath_start, shortPath_end, file_start, file_end;
+    clock_t shortPath_start, shortPath_end, file_start, file_end,write_start,write_end;
 
     file_start = clock();
 
@@ -39,7 +39,7 @@ int main(int argc, char * argv[]) {
     }
 
     char * file = getFileName( argc, argv );
-    if (myRank == root) printf("The file name is:\t%s\n", file);
+    //if (myRank == root) printf("The file name is:\t%s\n", file);
 
     if(myRank == root)  //if root process, then find the number of dimensions
     {
@@ -176,9 +176,16 @@ int main(int argc, char * argv[]) {
 
     local_dist = dijkstraP(dim, local_n, myRank, root_matrix);
 
-   
+    shortPath_end = clock();
+    double timespentShortPath = (double) (shortPath_end - shortPath_start) / CLOCKS_PER_SEC;
+
+
    //Instead of gathering the output, each process can write their part to the file.
     
+    //Timing for the process
+    write_start = clock();
+
+
     //Init variable for writing
    MPI_File writeHandle;
    char outExtension[] = ".out";
@@ -206,18 +213,20 @@ int main(int argc, char * argv[]) {
     mpi_error_check(mpierror);
 
     MPI_File_close(&writeHandle);
+
+    write_end = clock();
+    double timespentWrite = (double) (write_end - write_start) / CLOCKS_PER_SEC;
    
-    /** MPI Gather
+    /** MPI Gather      ****COMMENTED OUT BECAUSE NOW REDUNENT.****
      *  Collects all the results from the processes into the root process.
      *  Processors send their elements to the root array to be collected.
      *  The elements are ordered by the rank of the process
      *  local_n is the number of elements received per process
      *  local_dist is the elements stored on the process which collected to the root_dist
-     */ 
+ 
     mpierror = MPI_Gather(local_dist, local_n, MPI_INT, root_dist, local_n, MPI_INT, root, MPI_COMM_WORLD);
     mpi_error_check(mpierror);
 
-    /*
     if (myRank == root) {
         // Prints the distance matrix
         printDistance(root_dist, dim, nelements);
@@ -225,10 +234,8 @@ int main(int argc, char * argv[]) {
     */
     
 
-    // Prints the time of the execution
-    shortPath_end = clock();
-    double timespentShortPath = (double) (shortPath_end - shortPath_start) / CLOCKS_PER_SEC;
-    printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\n\n",myRank,timespentFile,timespentShortPath);
+    
+        printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\nTime spent writing file to output file:\t%lf\nOverall time of program is:\t%lf\n\n",myRank,timespentFile,timespentShortPath,timespentWrite,(timespentFile+timespentShortPath+timespentWrite));
     
     if(myRank == root) free(root_dist);
     free(root_matrix);
