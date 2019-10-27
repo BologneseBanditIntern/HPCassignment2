@@ -1,6 +1,8 @@
 /** CITS3402 - High Performace Computing
  *  Project 2 - Shortest Paths
  *  Authors: Tomas Mijat 21721589 & Ethan Chin 22248878
+ * 
+ * For instructions on how to compile & run program please reffer to the "How to run the Program" section of the README.md document.
  */
 
 #include "paths.h"
@@ -11,7 +13,7 @@
 
 int main(int argc, char * argv[]) {
 
-     FILE *fp;
+    FILE *fp;
     MPI_File fileHandle;        //MPI File type
     int *root_matrix;
     int *root_dist;
@@ -78,19 +80,16 @@ int main(int argc, char * argv[]) {
     // Open file
     MPI_File_open(MPI_COMM_WORLD,file,MPI_MODE_RDONLY,MPI_INFO_NULL,&fileHandle);
 
-    //Use collective call to read file
+    //Dividing work evenly (ish) Idea is that if the remaining parts of data is too great, then increase the amount of data each process should gather by 1
     int elementsPerProcess = nelements / numProcs;
-    while((elementsPerProcess * numProcs) < nelements) //Dividing work evenly (ish) Idea is that if the remaining parts of data is too great, then increase the amount of data each process should gather by 1
+    while((elementsPerProcess * numProcs) < nelements)
     {
         elementsPerProcess++;
     }
     int elementsLastProcess = nelements - (elementsPerProcess * (numProcs-1));      //Assigning a smaller number to the last process
 
-    //if(myRank == root)  printf("The number of elements read per process is:\t%d\nWith the last process reading:\t %d  elements\n",elementsPerProcess,elementsLastProcess);
-
-    //Reading of the file
+    //****Reading of the file****
     int * partialMatrix;
-
 
     //Allocating memory to the for partial matrix then reading file to processes
     if(myRank == (numProcs - 1) && numProcs > 1)
@@ -110,16 +109,9 @@ int main(int argc, char * argv[]) {
         mpi_error_check(mpierror);
     }
 
-    /*
-    if(mpierror == MPI_SUCCESS)
-    {
-        printf("\nThe read was successful!\n\n");
-    }
-    */
-
     MPI_File_close(&fileHandle);        //Closing the file after finishing reading.
 
-    //Giving all processes the contents of the file
+    //****Giving all processes the contents of the file****
     root_matrix = (int *) malloc((dim*dim) * sizeof(int));     //Allocated pointer space for root matrix.
 
     if(myRank == (numProcs - 1) && numProcs > 1)
@@ -136,7 +128,9 @@ int main(int argc, char * argv[]) {
 
     file_end = clock();
     double timespentFile = (double) (file_end - file_start) / CLOCKS_PER_SEC;       //Measure time spent reading the input file
+    free(partialMatrix);        //Free space allocated to the partial matrix.
 
+    //***Testing to see contents of matrix ****
     if (myRank == root) {
         /*
         printf("File matrix:\n");
@@ -146,10 +140,10 @@ int main(int argc, char * argv[]) {
             if (i % dim == dim-1) printf("\n");
         }
         */
-        
-        root_dist = initMatrix(dim);
+
     }
 
+    // ******Section of the code regarding the Shortest Path Algorithm *****
     /** MPI Broadcast
      *  One process sends the same information to every other process,
      *  OpenMPI chooses the most optimal algorithm depending on the conditions
@@ -181,7 +175,7 @@ int main(int argc, char * argv[]) {
     double timespentShortPath = (double) (shortPath_end - shortPath_start) / CLOCKS_PER_SEC;
 
 
-   //Instead of gathering the output, each process can write their part to the file.
+   //***Writing of the output file****
     
     //Timing for the process
     write_start = clock();
@@ -201,12 +195,9 @@ int main(int argc, char * argv[]) {
     // Open file
     MPI_File_open(MPI_COMM_WORLD,outFile,MPI_MODE_WRONLY | MPI_MODE_CREATE,MPI_INFO_NULL,&writeHandle);
 
-
-
-    if(myRank == root)
+    if(myRank == root)      //Write initial dimension value to the file.
     {
-        int * dimBuff = malloc(sizeof(int));
-        dimBuff = &dim;
+        int * dimBuff = &dim;;
         mpierror = MPI_File_write_at(writeHandle,0,dimBuff,1,MPI_INT,&status);
         mpi_error_check(mpierror);  
     }
@@ -225,8 +216,7 @@ int main(int argc, char * argv[]) {
          
     }
 
-
-    MPI_File_close(&writeHandle);
+    MPI_File_close(&writeHandle);       //Closing of the file
 
     write_end = clock();
     double timespentWrite = (double) (write_end - write_start) / CLOCKS_PER_SEC;
@@ -234,14 +224,11 @@ int main(int argc, char * argv[]) {
         //Printing timing information for program 
     printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\nTime spent writing file to output file:\t%lf\nOverall time of program is:\t%lf\n\n",myRank,timespentFile,timespentShortPath,timespentWrite,(timespentFile+timespentShortPath+timespentWrite));
     
-    if(myRank == root) free(root_dist);
+    //Cleaning up allocated memory
     free(root_matrix);
     free(local_dist);
     
-
-    
     MPI_Finalize();
-
 
     return 0;
 }

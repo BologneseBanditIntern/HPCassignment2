@@ -21,7 +21,7 @@ compilation of the program, by running the following commands.
 To run the program use the command mpirun [-n {numberOfProcesses}] ./paths [-f] {fileName}
 Where;  - objects within []'s are optional and may be included if wished.
         - nummberOfProcesses must equally divide the number of total datapoints. i.e. 5 nodes (25 data points) can be 1 or 5, 16 can be 1,2,4,8,16,32,etc
-The program will print to the terminal timing data for each phase of execution (readingFile,ShortPathAlgorithm & writeFile) in addition to the total execution time, for each running process. This displace can be disabled by commenting out/deleting line 235 of the paths.c file and recompiling the program.
+The program will print to the terminal timing data for each phase of execution (readingFile,ShortPathAlgorithm & writeFile) in addition to the total execution time, for each running process. This displace can be disabled by commenting out/deleting line 225 of the paths.c file and recompiling the program.
 The program will also output a file containing the all pairs shortest path matrix (with the first digit representing the number of nodes of the graph), with the same name of the input file, with the exception that the extension is changed to ".out". This will be placed in the same file location as the input file. 
 
 
