@@ -135,20 +135,8 @@ int main(int argc, char * argv[]) {
     double timespentFile = (double) (file_end - file_start) / CLOCKS_PER_SEC;       //Measure time spent reading the input file
     free(partialMatrix);        //Free space allocated to the partial matrix.
 
-    //***Testing to see contents of matrix ****
-    if (myRank == root) {
-        /*
-        printf("File matrix:\n");
-        for (int i = 0; i < nelements; i++)
-        {
-            printf("%d ", root_matrix[i]);
-            if (i % dim == dim-1) printf("\n");
-        }
-        */
-
     // Each process will get a piece of the array
     local_n = (dim * dim) / numProcs; // p / n
-    //if (myRank == root) printf("local:%d\n", local_n);
 
     // Start time of shortest path operations
     shortPath_start = clock();
@@ -157,28 +145,26 @@ int main(int argc, char * argv[]) {
         //root_dist = dijkstra(root_matrix, dim);
     }
 
-
     local_dist = dijkstraP(dim, local_n, myRank, root_matrix);
 
-     shortPath_end = clock();
+    shortPath_end = clock();
     double timespentShortPath = (double) (shortPath_end - shortPath_start) / CLOCKS_PER_SEC;
 
-   //***Writing of the output file****
+    // ---- Writing of the output file ---- //
     
     //Timing for the process
     write_start = clock();
 
-
     //Init variable for writing
-   MPI_File writeHandle;
-   char outExtension[] = ".out";
-   char * token;
-   //String manipultion to form outfile name.
-   token = strtok(file,".in");
-   int outFileLength = sizeof(token)/sizeof(char);
-   char *outFile = (char *) malloc((outFileLength + 5)/sizeof(char));
-   strcpy(outFile, token);
-   strcat(outFile,outExtension);
+    MPI_File writeHandle;
+    char outExtension[] = ".out";
+    char * token;
+    //String manipultion to form outfile name.
+    token = strtok(file,".in");
+    int outFileLength = sizeof(token)/sizeof(char);
+    char *outFile = (char *) malloc((outFileLength + 5)/sizeof(char));
+    strcpy(outFile, token);
+    strcat(outFile,outExtension);
   
     // Open file
     MPI_File_open(MPI_COMM_WORLD,outFile,MPI_MODE_WRONLY | MPI_MODE_CREATE,MPI_INFO_NULL,&writeHandle);
@@ -201,7 +187,6 @@ int main(int argc, char * argv[]) {
         MPI_Offset offset = 1 + (myRank * elementsPerProcess);
         mpierror = MPI_File_write_at_all(writeHandle,offset*sizeof(int),local_dist,elementsPerProcess,MPI_INT,&status);
         mpi_error_check(mpierror);
-         
     }
 
     MPI_File_close(&writeHandle);       //Closing of the file
@@ -212,14 +197,12 @@ int main(int argc, char * argv[]) {
         //Printing timing information for program 
     printf("***Process %d****\nTime spent on file reading:\t%lf\nTime spent on shortest path op:\t%lf\nTime spent writing file to output file:\t%lf\nOverall time of program is:\t%lf\n\n",myRank,timespentFile,timespentShortPath,timespentWrite,(timespentFile+timespentShortPath+timespentWrite));
 
-    
     //Cleaning up allocated memory
     free(root_matrix);
     free(local_dist);
 
     // This function terminates the MPI execution environment.
     // All processes must call this routine before exiting
-
     MPI_Finalize();
 
     return 0;
@@ -245,6 +228,7 @@ int* initMatrixP(int dim) {
     return matrix;
 }
 
+// Implementation of dijkstras algorithm
 int* dijkstraP(int dim, int local_n, int myRank, int *root_matrix) {
 
     // output array, holds the shortest distances
@@ -272,11 +256,11 @@ int* dijkstraP(int dim, int local_n, int myRank, int *root_matrix) {
         // Finds the shortest paths for all verticies from n
         for (int count = 0; count < dim - 1; count++)
         {
-            // Finds the min dist value, can be moved to a separate function
-            //int u = minDistance(dist, visited);
+            
             int min = dim;
             int u;
 
+            // Finds the min dist value
             for (int v = 0; v < dim; v++) {
                 pos = n * dim + v;
                 if (visited[pos] == 0 && dist[pos] <= min) {
@@ -284,112 +268,24 @@ int* dijkstraP(int dim, int local_n, int myRank, int *root_matrix) {
                     u = v;
                 }
             }
-            // end of min
 
             // set vertex as visited
             visited[n * dim + u] = 1;
-            //printf("U: %d %d\n", u, myRank);
 
             for (int v = 0; v < dim; v++)
             {
                 pos = n * dim + v;
                 if (!visited[pos] && root_matrix[u * dim + v] && dist[n * dim + u] != dim &&
                     dist[n * dim + u] + root_matrix[u * dim + v] < dist[pos]) {
-                    //printf("%d, %d, %d, %d, %d, %d, %d, %d\n", visited[pos], root_matrix[u * dim + v], dist[n*dim+u], dist[pos], v , u, pos, n);
                     dist[pos] = dist[n * dim + u] + root_matrix[u * dim + v];
                 }
             }
         }
-        // print
-        /*
-        printf("Vertiex\t Distance\n");
-        for (int i = 0; i < dim; i++)
-        {
-            printf("%d ", dist[i]);
-        }
-        */
-        
     }
     free(visited);
 
     return dist;
 }
-
-
-int* dijkstra(int *matrix, int dim) {
-
-    // output array, holds the shortest distances
-    int *dist = initMatrix(dim);
-
-    // 1 if shortest distance has been found
-    int *visited = initMatrix(dim);
-
-    int pos;
-
-    // Initialize all distance values as max (dim) and visited
-    for (int i = 0; i < dim; i++)
-    {
-        for (int j = 0; j < dim; j++)
-        {
-            pos = i * dim + j;
-            dist[pos] = dim;
-            visited[pos] = 0;
-        }
-    }
-    
-    // iterates through all vertices
-    for (int n = 0; n < dim; n++) {
-
-        // distance from self is 0
-        dist[n * dim + n] = 0;
-
-        // Finds the shortest paths for all verticies from n
-        for (int count = 0; count < dim - 1; count++)
-        {
-            // Finds the min dist value, can be moved to a separate function
-            //int u = minDistance(dist, visited);
-            int min = dim;
-            int min_index;
-
-            for (int v = 0; v < dim; v++) {
-                pos = n * dim + v;
-                if (visited[pos] == 0 && dist[pos] <= min) {
-                    min = dist[pos];
-                    min_index = v;
-                }
-            }
-            // end of min
-
-            // set vertex as visited
-            int u = min_index;
-            visited[n * dim + u] = 1;
-            //printf("U: %d\n", u);
-
-            for (int v = 0; v < dim; v++)
-            {
-                pos = n * dim + v;
-                printf("%d, %d, %d, %d, %d, %d\n", visited[pos], matrix[u * dim + v], dist[n*dim+u], dist[pos], v , u);
-                if (!visited[pos] && matrix[u * dim + v] && dist[n * dim + u] != dim &&
-                    dist[n * dim + u] + matrix[u * dim + v] < dist[pos]) {
-                    dist[pos] = dist[n * dim + u] + matrix[u * dim + v];
-                }
-            }
-        }
-
-        // print
-        
-        printf("Vertiex\t Distance\n");
-        for (int i = 0; i < dim; i++)
-        {
-            printf("Vertiex: %d Distance: %d\n", i, dist[n * dim + i]);
-        }
-        
-       free(visited);
-    }
-
-    return dist;
-}
-
 
 // Reads the file and allocates it to memory
 int* readFile(FILE *fp, int *dim) {
@@ -480,21 +376,3 @@ void mpi_error_check(int mpierror){
         exit(EXIT_FAILURE);
     }
 }
-
-/** MPI All reduce
- *  Accessing a reduced result across all processes, similar to a mpi_reduce and mpi_broadcast
- *  @param local_min value that each process wants to reduce
- *  @param global_min global value that processes will receive
- *  @param 2 number of elements
- *  @param MPI data type
- *  @param op operation to be performed for reduction
- *  @param communicator
- */
-/*
-mpierror = MPI_Allreduce(local_min, global_min, 2, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-*/
-
-/** MPI Gather
- *  Collects all the results from the processes into the root process.
- */
-//mpierror = MPI_Gather(local_matrix, local_n, MPI_INT, root_matrix, local_n, MPI_INT, root, MPI_COMM_WORLD);
