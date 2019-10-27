@@ -1,6 +1,31 @@
 # HPC Assignment2
-
+### Ethan Chin - 22248878     Tomas Mijat - 21721589
 -------------------------------------------------
+#   How to run the Program
+
+## Compiling the program
+
+Within the folder there are a number of files. These files are;
+- 'paths.c' : This is the source code for the program.
+- 'paths.h' : This is the header file containing precompiler informationfor the program.
+- 'makefile' : This is a tool used to easily compile the program. 
+- 'examples' : This folder contains the exmpales provided by Nicolas Pritchard. 
+ To compile the program use the command line instruction 'make' this will initiate the
+compilation of the program, by running the following commands.
+> mpicc -c paths.c
+>
+> mpicc -o paths paths.o
+
+## Running the Program
+
+To run the program use the command mpirun [-n {numberOfProcesses}] ./paths [-f] {fileName}
+Where;  - objects within []'s are optional and may be included if wished.
+        - nummberOfProcesses must equally divide the number of total datapoints. i.e. 5 nodes (25 data points) can be 1 or 5, 16 can be 1,2,4,8,16,32,etc
+The program will print to the terminal timing data for each phase of execution (readingFile,ShortPathAlgorithm & writeFile) in addition to the total execution time, for each running process. This displace can be disabled by commenting out/deleting line 225 of the paths.c file and recompiling the program.
+The program will also output a file containing the all pairs shortest path matrix (with the first digit representing the number of nodes of the graph), with the same name of the input file, with the exception that the extension is changed to ".out". This will be placed in the same file location as the input file. 
+
+
+# Assignment Breif
 
 The goal of this project is to design an implement parallel algorithms to solve
 the all-pairs-shortest path problem for a number of large graphs using either
