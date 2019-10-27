@@ -13,6 +13,7 @@ Within the folder there are a number of files. These files are;
  To compile the program use the command line instruction 'make' this will initiate the
 compilation of the program, by running the following commands.
 > mpicc -c paths.c
+>
 > mpicc -o paths paths.o
 
 ## Running the Program
